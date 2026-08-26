@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "offlineOnly": true,
+  "ocr": {
+    "family": "PP-OCRv6",
+    "detector": {
+      "name": "PP-OCRv6_medium_det",
+      "version": "3.7.0",
+      "path": "pp-ocrv6/medium_det.onnx",
+      "sha256": "REQUIRED_BEFORE_DISTRIBUTION"
+    },
+    "recognizer": {
+      "name": "PP-OCRv6_medium_rec",
+      "version": "3.7.0",
+      "path": "pp-ocrv6/medium_rec.onnx",
+      "sha256": "REQUIRED_BEFORE_DISTRIBUTION"
+    }
+  },
+  "fallbacks": {
+    "macos": "Vision framework",
+    "windows": "Windows OCR when MSIX-packaged; otherwise unavailable until bundled models pass hash verification"
+  }
+}

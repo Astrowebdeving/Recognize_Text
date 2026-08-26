@@ -1,0 +1,9 @@
+{
+  "name": "document-loupe",
+  "version-string": "0.1.0",
+  "description": "Capture-first document magnifier and local OCR utility",
+  "dependencies": [
+    "qtbase",
+    "qtdeclarative"
+  ]
+}

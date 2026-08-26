@@ -1,0 +1,6 @@
+/build*/
+/artifacts*/
+/Document Loupe.app/
+/.cache/
+*.user
+*.DS_Store

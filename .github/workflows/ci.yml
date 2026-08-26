@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core:
+    strategy:
+      matrix:
+        os: [macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure core
+        run: cmake -S . -B build -DLOUPE_BUILD_APP=OFF -DLOUPE_BUILD_TESTS=ON
+      - name: Build core
+        run: cmake --build build --config Release --parallel
+      - name: Test core
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  qt-app:
+    strategy:
+      matrix:
+        os: [macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.10.0'
+          modules: 'qtshadertools'
+          cache: true
+      - name: Configure app
+        run: cmake -S . -B build -DLOUPE_BUILD_APP=ON -DLOUPE_BUILD_TESTS=ON
+      - name: Build app
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+

@@ -1,0 +1,46 @@
+set(app_path "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/DocumentLoupe.app")
+if(NOT EXISTS "${app_path}/Contents/MacOS/DocumentLoupe")
+    message(FATAL_ERROR "Installed Document Loupe bundle is missing: ${app_path}")
+endif()
+
+set(deploy_arguments
+    "${app_path}"
+    "-qmldir=@CMAKE_CURRENT_SOURCE_DIR@/ui"
+    "-always-overwrite"
+)
+if(NOT "@LOUPE_MACOS_SIGN_IDENTITY@" STREQUAL "")
+    list(APPEND deploy_arguments
+        "-codesign=@LOUPE_MACOS_SIGN_IDENTITY@"
+        "-hardened-runtime"
+    )
+else()
+    # Avoid signing every copied Homebrew Qt file separately. One final deep
+    # ad-hoc signature is sufficient for a local/test package. Release builds
+    # with a real identity use macdeployqt's component-by-component signing.
+    list(APPEND deploy_arguments "-no-codesign")
+endif()
+
+execute_process(
+    COMMAND "@LOUPE_MACDEPLOYQT_EXECUTABLE@" ${deploy_arguments}
+    RESULT_VARIABLE deploy_result
+    OUTPUT_VARIABLE deploy_output
+    ERROR_VARIABLE deploy_error
+)
+if(NOT deploy_result EQUAL 0)
+    message(FATAL_ERROR
+        "macdeployqt failed (${deploy_result})\n${deploy_output}\n${deploy_error}")
+endif()
+
+if("@LOUPE_MACOS_SIGN_IDENTITY@" STREQUAL "")
+    execute_process(
+        COMMAND /usr/bin/codesign --force --deep --sign -
+            --identifier com.openai.documentloupe "${app_path}"
+        RESULT_VARIABLE sign_result
+        OUTPUT_VARIABLE sign_output
+        ERROR_VARIABLE sign_error
+    )
+    if(NOT sign_result EQUAL 0)
+        message(FATAL_ERROR
+            "Ad-hoc codesign failed (${sign_result})\n${sign_output}\n${sign_error}")
+    endif()
+endif()
