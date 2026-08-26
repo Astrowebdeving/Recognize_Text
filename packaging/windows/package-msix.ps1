@@ -22,23 +22,27 @@ Set-StrictMode -Version Latest
 
 $sourceRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $resolvedBuild = (Resolve-Path -LiteralPath $BuildDirectory).Path
+$resolvedStage = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
+    $StageDirectory)
+$resolvedOutput = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
+    $OutputDirectory)
 $manifest = Join-Path $resolvedBuild 'AppxManifest.xml'
 if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
     throw "Missing configured manifest: $manifest"
 }
-if (Test-Path -LiteralPath $StageDirectory) {
-    throw "StageDirectory already exists. Use a new empty path: $StageDirectory"
+if (Test-Path -LiteralPath $resolvedStage) {
+    throw "StageDirectory already exists. Use a new empty path: $resolvedStage"
 }
 
-New-Item -ItemType Directory -Path $StageDirectory | Out-Null
-New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+New-Item -ItemType Directory -Path $resolvedStage | Out-Null
+New-Item -ItemType Directory -Path $resolvedOutput -Force | Out-Null
 
-& cmake --install $resolvedBuild --config $Configuration --prefix $StageDirectory
+& cmake --install $resolvedBuild --config $Configuration --prefix $resolvedStage
 if ($LASTEXITCODE -ne 0) { throw 'cmake --install failed' }
 
-Copy-Item -LiteralPath $manifest -Destination (Join-Path $StageDirectory 'AppxManifest.xml')
+Copy-Item -LiteralPath $manifest -Destination (Join-Path $resolvedStage 'AppxManifest.xml')
 Copy-Item -LiteralPath (Join-Path $sourceRoot 'packaging\windows\Assets') `
-    -Destination (Join-Path $StageDirectory 'Assets') -Recurse
+    -Destination (Join-Path $resolvedStage 'Assets') -Recurse
 
 $kitsRoot = (Get-ItemProperty `
     'HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots').KitsRoot10
@@ -50,8 +54,8 @@ $makeAppx = Get-ChildItem -LiteralPath (Join-Path $kitsRoot 'bin') `
 if ($null -eq $makeAppx) { throw 'MakeAppx.exe was not found in the Windows SDK' }
 
 $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
-$packagePath = Join-Path $OutputDirectory "Document-Loupe-$architecture.msix"
-& $makeAppx.FullName pack /d $StageDirectory /p $packagePath /o
+$packagePath = Join-Path $resolvedOutput "Document-Loupe-$architecture.msix"
+& $makeAppx.FullName pack /d $resolvedStage /p $packagePath /o
 if ($LASTEXITCODE -ne 0) { throw 'MakeAppx failed' }
 
 if ($CertificatePath) {
