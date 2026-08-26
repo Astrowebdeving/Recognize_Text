@@ -55,24 +55,26 @@ jobs:
       - name: Configure
         shell: pwsh
         run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
           -DLOUPE_BUILD_APP=ON
           -DLOUPE_BUILD_TESTS=ON
           -DLOUPE_BUILD_STRESS_TESTS=ON
       - name: Build and test
         shell: pwsh
         run: |
-          cmake --build build --parallel
-          ctest --test-dir build --output-on-failure
-          & '.\build\loupe_stress_tests.exe'
+          cmake --build build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+          ctest --test-dir build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed' }
+          & '.\build\Release\loupe_stress_tests.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Windows stress tests failed' }
       - name: Create Setup EXE, portable ZIP, and MSIX
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path artifacts | Out-Null
-          cpack --config build/CPackConfig.cmake -G NSIS -B artifacts
+          cpack --config build/CPackConfig.cmake -C Release -G NSIS -B artifacts
           if ($LASTEXITCODE -ne 0) { throw 'NSIS packaging failed' }
-          cpack --config build/CPackConfig.cmake -G ZIP -B artifacts
+          cpack --config build/CPackConfig.cmake -C Release -G ZIP -B artifacts
           if ($LASTEXITCODE -ne 0) { throw 'ZIP packaging failed' }
           .\packaging\windows\package-msix.ps1 `
             -BuildDirectory build `
