@@ -7,7 +7,7 @@ if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
         "Minimum macOS version supported by Document Loupe")
 endif()
 
-project(DocumentLoupe VERSION 0.1.4 LANGUAGES CXX)
+project(DocumentLoupe VERSION 0.1.5 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
