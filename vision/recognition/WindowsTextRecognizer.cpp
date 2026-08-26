@@ -4,6 +4,7 @@
 #include <appmodel.h>
 #include <robuffer.h>
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.Media.Ocr.h>
 #include <winrt/Windows.Storage.Streams.h>
@@ -35,7 +36,8 @@ winrt::Windows::Graphics::Imaging::SoftwareBitmap makeBitmap(const PixelBuffer& 
     Buffer buffer(packedSize);
     buffer.Length(packedSize);
     uint8_t* target = nullptr;
-    winrt::check_hresult(buffer.as<IBufferByteAccess>()->Buffer(&target));
+    winrt::check_hresult(
+        buffer.as<::Windows::Storage::Streams::IBufferByteAccess>()->Buffer(&target));
     if (target == nullptr) winrt::throw_hresult(E_OUTOFMEMORY);
     for (int32_t y = 0; y < image.height; ++y) {
         const auto* source = image.bytes.data() + static_cast<size_t>(y) * image.bytesPerRow;
