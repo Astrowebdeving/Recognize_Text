@@ -20,10 +20,10 @@ std::string errorMessage(NSError* error, const char* fallback) {
 
 OcrResult VisionTextRecognizer::recognize(const PixelBuffer& image,
                                           const RecognitionOptions& options,
-                                          std::stop_token stop) {
+                                          CancellationToken cancellation) {
     OcrResult result;
     result.engine = "Apple Vision (local fallback)";
-    if (!image.valid() || stop.stop_requested()) {
+    if (!image.valid() || cancellation.stopRequested()) {
         result.error = "No valid image was supplied";
         return result;
     }
@@ -76,8 +76,8 @@ OcrResult VisionTextRecognizer::recognize(const PixelBuffer& image,
         NSError* error = nil;
         const BOOL performed = [handler performRequests:@[ request ] error:&error];
         CGImageRelease(cgImage);
-        if (!performed || error != nil || stop.stop_requested()) {
-            result.error = stop.stop_requested() ? "Recognition canceled"
+        if (!performed || error != nil || cancellation.stopRequested()) {
+            result.error = cancellation.stopRequested() ? "Recognition canceled"
                                                  : errorMessage(error, "Apple Vision recognition failed");
             return result;
         }

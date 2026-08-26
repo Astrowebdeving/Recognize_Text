@@ -142,8 +142,8 @@ void testReaderGeometry() {
 class SlowRecognizer final : public loupe::ITextRecognizer {
 public:
     loupe::OcrResult recognize(const loupe::PixelBuffer&, const loupe::RecognitionOptions&,
-                               std::stop_token stop) override {
-        for (int i = 0; i < 30 && !stop.stop_requested(); ++i)
+                               loupe::CancellationToken cancellation) override {
+        for (int i = 0; i < 30 && !cancellation.stopRequested(); ++i)
             std::this_thread::sleep_for(1ms);
         loupe::OcrResult result;
         result.overallConfidence = 1.0F;
@@ -154,7 +154,7 @@ public:
 class ThrowingRecognizer final : public loupe::ITextRecognizer {
 public:
     loupe::OcrResult recognize(const loupe::PixelBuffer&, const loupe::RecognitionOptions&,
-                               std::stop_token) override {
+                               loupe::CancellationToken) override {
         throw std::runtime_error("test recognizer failure");
     }
 };

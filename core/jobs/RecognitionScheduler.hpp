@@ -34,7 +34,7 @@ public:
     [[nodiscard]] size_t pendingCount() const;
 
 private:
-    void run(std::stop_token stop);
+    void run();
 
     std::unique_ptr<ITextRecognizer> recognizer_;
     ResultCallback callback_;
@@ -42,8 +42,8 @@ private:
     std::condition_variable_any available_;
     std::optional<RecognitionJob> pending_;
     std::atomic<GenerationId> latest_{0};
-    std::jthread worker_;
+    std::atomic_bool stopping_{false};
+    std::thread worker_;
 };
 
 } // namespace loupe
-

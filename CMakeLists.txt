@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 3.29)
 
-# C++20 stop_token/jthread support in Apple's libc++ is gated by the deployment
-# target. Set the actual minimum supported macOS version before project() runs
-# so clean CI machines use the same ABI feature set as local release builds.
+# Set the actual minimum supported macOS version before project() runs so clean
+# CI machines use the same SDK availability and ABI settings as release builds.
 if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING
         "Minimum macOS version supported by Document Loupe")
 endif()
 
-project(DocumentLoupe VERSION 0.1.1 LANGUAGES CXX)
+project(DocumentLoupe VERSION 0.1.2 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 

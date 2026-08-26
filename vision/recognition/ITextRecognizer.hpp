@@ -3,9 +3,23 @@
 #include "core/types/OcrTypes.hpp"
 #include "core/types/PixelBuffer.hpp"
 
-#include <stop_token>
+#include <atomic>
 
 namespace loupe {
+
+class CancellationToken {
+public:
+    CancellationToken() noexcept = default;
+    explicit CancellationToken(const std::atomic_bool& stopped) noexcept
+        : stopped_(&stopped) {}
+
+    [[nodiscard]] bool stopRequested() const noexcept {
+        return stopped_ != nullptr && stopped_->load(std::memory_order_acquire);
+    }
+
+private:
+    const std::atomic_bool* stopped_{};
+};
 
 enum class RecognitionQuality {
     Fast,
@@ -23,8 +37,7 @@ public:
     virtual ~ITextRecognizer() = default;
     virtual OcrResult recognize(const PixelBuffer& image,
                                 const RecognitionOptions& options,
-                                std::stop_token stop) = 0;
+                                CancellationToken cancellation) = 0;
 };
 
 } // namespace loupe
-

@@ -7,11 +7,12 @@ namespace loupe {
 RecognitionScheduler::RecognitionScheduler(std::unique_ptr<ITextRecognizer> recognizer,
                                            ResultCallback callback)
     : recognizer_(std::move(recognizer)), callback_(std::move(callback)),
-      worker_([this](std::stop_token stop) { run(stop); }) {}
+      worker_([this] { run(); }) {}
 
 RecognitionScheduler::~RecognitionScheduler() {
-    worker_.request_stop();
+    stopping_.store(true, std::memory_order_release);
     available_.notify_all();
+    if (worker_.joinable()) worker_.join();
 }
 
 void RecognitionScheduler::submit(RecognitionJob job) {
@@ -38,13 +39,16 @@ size_t RecognitionScheduler::pendingCount() const {
     return pending_.has_value() ? 1U : 0U;
 }
 
-void RecognitionScheduler::run(std::stop_token stop) {
-    while (!stop.stop_requested()) {
+void RecognitionScheduler::run() {
+    const CancellationToken cancellation(stopping_);
+    while (!cancellation.stopRequested()) {
         std::optional<RecognitionJob> job;
         {
             std::unique_lock lock(mutex_);
-            available_.wait(lock, stop, [this] { return pending_.has_value(); });
-            if (stop.stop_requested()) break;
+            available_.wait(lock, [this] {
+                return stopping_.load(std::memory_order_acquire) || pending_.has_value();
+            });
+            if (cancellation.stopRequested()) break;
             job = std::move(pending_);
             pending_.reset();
         }
@@ -52,14 +56,16 @@ void RecognitionScheduler::run(std::stop_token stop) {
         if (job->generation != latest_.load(std::memory_order_acquire)) continue;
         OcrResult result;
         try {
-            result = recognizer_->recognize(*job->region->originalPixels, job->options, stop);
+            result = recognizer_->recognize(*job->region->originalPixels, job->options,
+                                            cancellation);
         } catch (const std::exception& error) {
             result.error = std::string("Recognition failed: ") + error.what();
         } catch (...) {
             result.error = "Recognition failed with an unknown error";
         }
         result.generation = job->generation;
-        if (!stop.stop_requested() && job->generation == latest_.load(std::memory_order_acquire)) {
+        if (!cancellation.stopRequested() &&
+            job->generation == latest_.load(std::memory_order_acquire)) {
             if (callback_) {
                 try {
                     callback_(std::move(result));

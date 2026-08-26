@@ -173,7 +173,7 @@ void stressCoordinator() {
     loupe::CaptureCoordinator coordinator;
     constexpr int threadCount = 8;
     constexpr int publicationsPerThread = 5'000;
-    std::vector<std::jthread> threads;
+    std::vector<std::thread> threads;
     threads.reserve(threadCount);
     for (int thread = 0; thread < threadCount; ++thread) {
         threads.emplace_back([&, thread] {
@@ -189,7 +189,8 @@ void stressCoordinator() {
             }
         });
     }
-    threads.clear(); // std::jthread destruction joins every publisher.
+    for (auto& thread : threads) thread.join();
+    threads.clear();
     const auto expected = static_cast<loupe::GenerationId>(threadCount * publicationsPerThread);
     require(coordinator.generation() == expected, "coordinator lost concurrent publications");
     const auto current = coordinator.region();
@@ -203,8 +204,8 @@ class JitterRecognizer final : public loupe::ITextRecognizer {
 public:
     loupe::OcrResult recognize(const loupe::PixelBuffer&,
                                const loupe::RecognitionOptions&,
-                               std::stop_token stop) override {
-        for (int spin = 0; spin < 4 && !stop.stop_requested(); ++spin)
+                               loupe::CancellationToken cancellation) override {
+        for (int spin = 0; spin < 4 && !cancellation.stopRequested(); ++spin)
             std::this_thread::sleep_for(50us);
         loupe::OcrResult result;
         result.overallConfidence = 0.8F;
@@ -226,7 +227,7 @@ void stressLatestWinsScheduler() {
             });
 
         std::atomic<loupe::GenerationId> next{1};
-        std::vector<std::jthread> submitters;
+        std::vector<std::thread> submitters;
         for (int thread = 0; thread < 8; ++thread) {
             submitters.emplace_back([&] {
                 for (int job = 0; job < 2'000; ++job) {
@@ -236,6 +237,7 @@ void stressLatestWinsScheduler() {
                 }
             });
         }
+        for (auto& submitter : submitters) submitter.join();
         submitters.clear();
         scheduler.submit({sentinel, makeRegion(sentinel), {}});
         {

@@ -8,8 +8,7 @@ class WindowsTextRecognizer final : public ITextRecognizer {
 public:
     OcrResult recognize(const PixelBuffer& image,
                         const RecognitionOptions& options,
-                        std::stop_token stop) override;
+                        CancellationToken cancellation) override;
 };
 
 } // namespace loupe
-

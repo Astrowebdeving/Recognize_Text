@@ -6,7 +6,8 @@ namespace loupe {
 
 class UnavailableTextRecognizer final : public ITextRecognizer {
 public:
-    OcrResult recognize(const PixelBuffer&, const RecognitionOptions&, std::stop_token) override {
+    OcrResult recognize(const PixelBuffer&, const RecognitionOptions&,
+                        CancellationToken) override {
         OcrResult result;
         result.engine = "Unavailable";
         result.error = "OCR models are unavailable; raw magnification remains active";
@@ -15,4 +16,3 @@ public:
 };
 
 } // namespace loupe
-

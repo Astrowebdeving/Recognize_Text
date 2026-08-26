@@ -69,11 +69,11 @@ NormalizedQuad quadFor(const winrt::Windows::Foundation::Rect& rect,
 
 OcrResult WindowsTextRecognizer::recognize(const PixelBuffer& image,
                                             const RecognitionOptions& options,
-                                            std::stop_token stop) {
+                                            CancellationToken cancellation) {
     (void)options;
     OcrResult result;
     result.engine = "Windows OCR (local fallback)";
-    if (!image.valid() || stop.stop_requested()) {
+    if (!image.valid() || cancellation.stopRequested()) {
         result.error = "No valid image was supplied";
         return result;
     }
@@ -102,7 +102,7 @@ OcrResult WindowsTextRecognizer::recognize(const PixelBuffer& image,
         }
         const auto bitmap = makeBitmap(image);
         const auto recognized = engine.RecognizeAsync(bitmap).get();
-        if (stop.stop_requested()) {
+        if (cancellation.stopRequested()) {
             result.error = "Recognition canceled";
             return result;
         }
